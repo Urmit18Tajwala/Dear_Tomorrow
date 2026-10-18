@@ -235,3 +235,86 @@ body.dark .auth-panel, body.dark .auth-form input { background:var(--paper); col
   .auth-panel { padding:18px; }
   .auth-top-button { font-size:11px; }
 }
+
+/* Mobile-first usability improvements (added October 2026) */
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-wrap: anywhere; }
+img { max-width: 100%; }
+button, .upload-button, select { touch-action: manipulation; }
+
+@media (max-width: 720px) {
+  .app-shell { padding-left: 16px; padding-right: 16px; }
+  .topbar { position: relative; gap: 10px; }
+  .nav-links {
+    justify-content: flex-start;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+    padding: 2px 0 5px;
+    -webkit-overflow-scrolling: touch;
+  }
+  .nav-links::-webkit-scrollbar { display: none; }
+  .nav-link { flex: 0 0 auto; min-height: 42px; padding: 10px 15px; white-space: nowrap; }
+  .topbar-right { gap: 8px; }
+  .icon-button { width: 42px; height: 42px; flex: 0 0 42px; }
+  .auth-top-button { min-height: 42px; padding: 9px 12px; }
+  .hero { padding: 28px 0 24px; }
+  h1 { font-size: clamp(32px, 8vw, 43px); letter-spacing: -1.2px; }
+  .hero-copy { font-size: 14px; line-height: 1.7; }
+  .view { padding-bottom: 36px; }
+  .quote-card, .journal-card, .streak-card, .kindness-card, .mini-stats { border-radius: 18px; }
+  .quote-card { padding: 21px 18px; }
+  .quote-topline { font-size: 9px; letter-spacing: 1px; }
+  .quote-bottom { align-items: flex-start; flex-wrap: wrap; }
+  .journal-card { padding: 18px 15px; }
+  .section-heading { gap: 8px; margin-bottom: 18px; }
+  .section-heading h2 { font-size: clamp(21px, 5.8vw, 25px); }
+  .date-pill { white-space: normal; text-align: center; max-width: 105px; }
+  .prompt-box { align-items: flex-start; padding: 12px; gap: 9px; }
+  .prompt-box p { line-height: 1.5; }
+  textarea { min-height: 180px; padding: 14px; font-size: 16px; line-height: 1.7; }
+  .caption-input, .auth-form input, .list-toolbar input, .list-toolbar select { font-size: 16px; min-height: 44px; }
+  .writing-footer { gap: 9px; }
+  .word-progress { width: 100%; }
+  .upload-button { display: inline-flex; align-items: center; justify-content: center; min-height: 44px; padding: 10px 14px; }
+  .photo-heading { gap: 10px; }
+  .photo-grid { gap: 8px; }
+  .remove-photo { width: 32px; height: 32px; }
+  .primary-button, .secondary-button { min-height: 44px; padding: 11px 15px; }
+  .text-button { min-height: 40px; }
+  .list-toolbar { flex-direction: column; gap: 9px; }
+  .list-toolbar input, .list-toolbar select { width: 100%; }
+  .entry-row { align-items: flex-start; }
+  .entry-date-block { min-height: 58px; }
+  .entry-summary h3 { overflow-wrap: anywhere; }
+  .memory-gallery { gap: 10px; }
+  .memory-info { padding: 11px; }
+  .page-heading { padding: 28px 0 20px; }
+  .page-heading h2 { font-size: 30px; }
+  .auth-panel { margin-top: 16px; padding: 18px 15px; gap: 15px; }
+  .auth-panel h2 { font-size: 25px; }
+  .auth-actions { display: grid; grid-template-columns: 1fr; }
+  .auth-actions button { width: 100%; min-height: 46px; }
+  .entry-dialog { width: calc(100% - 20px); max-width: none; max-height: 90dvh; padding: 25px 16px 18px; border-radius: 17px; }
+  .dialog-actions { display: grid; grid-template-columns: 1fr; }
+  .dialog-actions button { width: 100%; min-height: 44px; }
+  .toast { bottom: max(14px, env(safe-area-inset-bottom)); width: calc(100% - 28px); text-align: center; }
+  footer { gap: 10px 14px; padding-bottom: max(24px, env(safe-area-inset-bottom)); }
+  .footer-reset { margin-left: 0; min-height: 40px; }
+}
+
+@media (max-width: 380px) {
+  .app-shell { padding-left: 12px; padding-right: 12px; }
+  .brand { font-size: 14px; gap: 6px; }
+  .brand-mark { width: 28px; height: 28px; }
+  .topbar-right { gap: 6px; }
+  .auth-top-button { padding: 8px 9px; font-size: 10px; }
+  .section-heading { flex-direction: column; }
+  .date-pill { max-width: none; }
+  .quote-bottom { flex-direction: column; }
+  .memory-gallery { grid-template-columns: 1fr 1fr; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+}
