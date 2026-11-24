@@ -3,7 +3,7 @@
 export const firebaseConfig = {
   apiKey: "AIzaSyDbjBhaBJG80FZ1Xmyeivi2GGTtyvOhBAA",
   authDomain: "dear-tomorrow-e26eb.firebaseapp.com",
-  databaseURL: "https://dear-tomorrow-e26eb-default-rtdb.firebaseio.com",
+  databaseURL: "https://dear-tomorrow-e26eb-default-rtdb.firebaseio.com/",
   projectId: "dear-tomorrow-e26eb",
   storageBucket: "dear-tomorrow-e26eb.firebasestorage.app",
   messagingSenderId: "140650991370",
