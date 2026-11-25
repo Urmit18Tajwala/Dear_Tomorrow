@@ -76,6 +76,7 @@ import { firebaseConfig } from "./config.js";
     dialogClose:$("dialogClose"), dialogDate:$("dialogDate"), dialogTitle:$("dialogTitle"), dialogPhotos:$("dialogPhotos"),
     dialogCaption:$("dialogCaption"), dialogBody:$("dialogBody"), editEntryBtn:$("editEntryBtn"),
     deleteEntryBtn:$("deleteEntryBtn"), clearDataBtn:$("clearDataBtn"), journalReminder:$("journalReminder"),
+    journalCountdown:$("journalCountdown"), journalCountdownValue:$("journalCountdownValue"),
     writeTodayBtn:$("writeTodayBtn"), enableNotificationsBtn:$("enableNotificationsBtn"), notificationStatus:$("notificationStatus")
   };
   const app = initializeApp(firebaseConfig);
@@ -84,7 +85,8 @@ import { firebaseConfig } from "./config.js";
   let user = null, entries = {}, savedQuotes = [], draftPhotos = [];
   let editingDate = todayKey(), dialogDateKey = null, promptIndex = dailyIndex(prompts.length, "prompt");
   let entryRef = null, quoteRef = null, activeView = "today", baseUpdatedAt = null, isSaving = false;
-  let reminderTimer = null, scheduledReminderKey = null;
+  let reminderTimer = null, scheduledReminderKey = null, journalCountdownInterval = null, midnightRefreshTimer = null;
+  let countdownDayKey = todayKey();
 
   function todayKey(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
@@ -231,6 +233,58 @@ import { firebaseConfig } from "./config.js";
     if (reminderTimer) window.clearTimeout(reminderTimer);
     reminderTimer=null;
   }
+  function updateJournalCountdown() {
+    if (!user || validEntry(entries[todayKey()])) {
+      els.journalCountdown.hidden=true;
+      return;
+    }
+    const now=new Date();
+    const endOfDay=new Date(now);
+    endOfDay.setHours(24,0,0,0);
+    const remaining=Math.max(0,endOfDay.getTime()-now.getTime());
+    const seconds=Math.floor(remaining/1000);
+    const hours=Math.floor(seconds/3600);
+    const minutes=Math.floor((seconds%3600)/60);
+    const secs=seconds%60;
+    els.journalCountdown.hidden=false;
+    els.journalCountdownValue.textContent=`${String(hours).padStart(2,"0")}:${String(minutes).padStart(2,"0")}:${String(secs).padStart(2,"0")}`;
+  }
+  function startJournalCountdown() {
+    if (journalCountdownInterval) return;
+    countdownDayKey=todayKey();
+    updateJournalCountdown();
+    journalCountdownInterval=window.setInterval(()=>{
+      const day=todayKey();
+      if (day!==countdownDayKey) {
+        countdownDayKey=day;
+        scheduledReminderKey=null;
+        clearJournalReminderTimer();
+        renderHeader();
+        renderStats();
+        renderWeek();
+        renderJournalReminder();
+      }
+      updateJournalCountdown();
+    },1000);
+  }
+  function stopJournalCountdown() {
+    if (journalCountdownInterval) window.clearInterval(journalCountdownInterval);
+    journalCountdownInterval=null;
+    els.journalCountdown.hidden=true;
+  }
+  function scheduleNextJournalDayRefresh() {
+    if (midnightRefreshTimer) window.clearTimeout(midnightRefreshTimer);
+    const nextDay=new Date();
+    nextDay.setHours(24,0,0,100);
+    midnightRefreshTimer=window.setTimeout(()=>{
+      midnightRefreshTimer=null;
+      countdownDayKey=todayKey();
+      scheduledReminderKey=null;
+      clearJournalReminderTimer();
+      renderHeader();
+      renderAll();
+    },Math.max(0,nextDay.getTime()-Date.now()));
+  }
   async function getReminderNotificationRegistration() {
     if (!("serviceWorker" in navigator)) return null;
     try {
@@ -263,16 +317,24 @@ import { firebaseConfig } from "./config.js";
     if (!user) {
       els.journalReminder.hidden=true;
       clearJournalReminderTimer();
+      stopJournalCountdown();
+      if (midnightRefreshTimer) window.clearTimeout(midnightRefreshTimer);
+      midnightRefreshTimer=null;
       scheduledReminderKey=null;
       return;
     }
+    startJournalCountdown();
     const day=todayKey();
     if (validEntry(entries[day])) {
       els.journalReminder.hidden=true;
       clearJournalReminderTimer();
+      stopJournalCountdown();
+      scheduleNextJournalDayRefresh();
       scheduledReminderKey=null;
       return;
     }
+    if (midnightRefreshTimer) window.clearTimeout(midnightRefreshTimer);
+    midnightRefreshTimer=null;
     els.journalReminder.hidden=false;
     if (!("Notification" in window)) {
       els.enableNotificationsBtn.disabled=true;

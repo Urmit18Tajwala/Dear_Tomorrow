@@ -226,6 +226,8 @@ body.dark .empty-photos { border-color: #4b5949; }
 .journal-reminder .eyebrow { margin-bottom:6px; color:#977342; }
 .journal-reminder h2 { margin-bottom:5px; font-size:21px; }
 .journal-reminder-copy p:last-child { margin-bottom:0; color:#756c5b; font-size:12px; }
+.journal-reminder-copy .journal-countdown { margin-top:10px; color:#756c5b; font-size:12px; font-variant-numeric:tabular-nums; }
+.journal-countdown strong { margin-left:4px; color:#977342; font-size:17px; letter-spacing:.5px; }
 .journal-reminder-actions { display:flex; flex-wrap:wrap; gap:9px; }
 .notification-status { flex-basis:100%; margin:-10px 0 0; color:var(--muted); font-size:10px; }
 .journal-reminder-actions button:disabled { cursor:not-allowed; opacity:.65; }
@@ -236,6 +238,8 @@ body.dark .auth-panel, body.dark .auth-form input { background:var(--paper); col
 body.dark .journal-reminder { background:#3a3428; border-color:#5e513b; }
 body.dark .journal-reminder .eyebrow { color:#d8b978; }
 body.dark .journal-reminder-copy p:last-child { color:#ddd0b4; }
+body.dark .journal-reminder-copy .journal-countdown { color:#ddd0b4; }
+body.dark .journal-countdown strong { color:#e2c384; }
 @media (max-width: 850px) {
   .auth-panel { grid-template-columns:1fr; }
   .topbar { height:auto; min-height:86px; flex-wrap:wrap; padding:14px 0; }
