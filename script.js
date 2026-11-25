@@ -75,7 +75,8 @@ import { firebaseConfig } from "./config.js";
     memoryGallery:$("memoryGallery"), themeToggle:$("themeToggle"), toast:$("toast"), entryDialog:$("entryDialog"),
     dialogClose:$("dialogClose"), dialogDate:$("dialogDate"), dialogTitle:$("dialogTitle"), dialogPhotos:$("dialogPhotos"),
     dialogCaption:$("dialogCaption"), dialogBody:$("dialogBody"), editEntryBtn:$("editEntryBtn"),
-    deleteEntryBtn:$("deleteEntryBtn"), clearDataBtn:$("clearDataBtn")
+    deleteEntryBtn:$("deleteEntryBtn"), clearDataBtn:$("clearDataBtn"), journalReminder:$("journalReminder"),
+    writeTodayBtn:$("writeTodayBtn"), enableNotificationsBtn:$("enableNotificationsBtn"), notificationStatus:$("notificationStatus")
   };
   const app = initializeApp(firebaseConfig);
   const auth = getAuth(app);
@@ -83,6 +84,7 @@ import { firebaseConfig } from "./config.js";
   let user = null, entries = {}, savedQuotes = [], draftPhotos = [];
   let editingDate = todayKey(), dialogDateKey = null, promptIndex = dailyIndex(prompts.length, "prompt");
   let entryRef = null, quoteRef = null, activeView = "today", baseUpdatedAt = null, isSaving = false;
+  let reminderTimer = null, scheduledReminderKey = null;
 
   function todayKey(date = new Date()) {
     return `${date.getFullYear()}-${String(date.getMonth()+1).padStart(2,"0")}-${String(date.getDate()).padStart(2,"0")}`;
@@ -225,6 +227,96 @@ import { firebaseConfig } from "./config.js";
     finally {isSaving=false;els.saveEntryBtn.disabled=false;}
   }
   function validEntry(e) { return e && (e.text || e.caption || (e.photos && e.photos.length)); }
+  function clearJournalReminderTimer() {
+    if (reminderTimer) window.clearTimeout(reminderTimer);
+    reminderTimer=null;
+  }
+  async function getReminderNotificationRegistration() {
+    if (!("serviceWorker" in navigator)) return null;
+    try {
+      await navigator.serviceWorker.register("./notification-sw.js");
+      return await navigator.serviceWorker.ready;
+    } catch(error) {
+      console.warn("Could not prepare browser reminders.",error);
+      return null;
+    }
+  }
+  async function showJournalBrowserNotification() {
+    if (!user || validEntry(entries[todayKey()]) || !("Notification" in window) || Notification.permission!=="granted") return;
+    const day=todayKey(), sentKey=`dearTomorrow.reminderSent.${user.uid}.${day}`;
+    if (localStorage.getItem(sentKey)==="true") return;
+    try {
+      const options={
+        body:"You haven't added today's journal yet. Take a moment to write a few lines.",
+        tag:`dear-tomorrow-journal-${day}`
+      };
+      const registration=await getReminderNotificationRegistration();
+      if (registration && typeof registration.showNotification==="function") {
+        await registration.showNotification("Dear Tomorrow reminder",options);
+      } else {
+        new Notification("Dear Tomorrow reminder",options);
+      }
+      localStorage.setItem(sentKey,"true");
+    } catch(error) { console.error(error); }
+  }
+  function renderJournalReminder() {
+    if (!user) {
+      els.journalReminder.hidden=true;
+      clearJournalReminderTimer();
+      scheduledReminderKey=null;
+      return;
+    }
+    const day=todayKey();
+    if (validEntry(entries[day])) {
+      els.journalReminder.hidden=true;
+      clearJournalReminderTimer();
+      scheduledReminderKey=null;
+      return;
+    }
+    els.journalReminder.hidden=false;
+    if (!("Notification" in window)) {
+      els.enableNotificationsBtn.disabled=true;
+      els.enableNotificationsBtn.textContent="Browser alerts unavailable";
+      els.notificationStatus.textContent="You’ll see this reminder in the journal while signed in.";
+      return;
+    }
+    const permission=Notification.permission;
+    els.enableNotificationsBtn.disabled=permission==="denied";
+    els.enableNotificationsBtn.textContent=permission==="granted" ? "Browser reminder enabled" :
+      permission==="denied" ? "Notifications blocked" : "Enable browser reminder";
+    els.notificationStatus.textContent=permission==="granted" ?
+      "We’ll remind you at 8 pm if today’s journal is still empty. Keep the website open for the alert." :
+      permission==="denied" ? "Notifications are blocked in your browser settings. The on-page reminder will still appear." :
+      "Optional browser alert at 8 pm. The website must be open.";
+    if (permission!=="granted") return;
+    const reminderKey=`${user.uid}:${day}`;
+    if (scheduledReminderKey===reminderKey || localStorage.getItem(`dearTomorrow.reminderSent.${user.uid}.${day}`)==="true") return;
+    clearJournalReminderTimer();
+    scheduledReminderKey=reminderKey;
+    const reminderTime=new Date();
+    reminderTime.setHours(20,0,0,0);
+    const delay=Math.max(0,reminderTime.getTime()-Date.now());
+    reminderTimer=window.setTimeout(()=>{
+      reminderTimer=null;
+      showJournalBrowserNotification();
+    },delay);
+  }
+  async function enableBrowserReminders() {
+    if (!("Notification" in window)) {
+      els.notificationStatus.textContent="This browser does not support desktop notifications.";
+      return;
+    }
+    try {
+      const permission=await Notification.requestPermission();
+      if (permission==="granted") await getReminderNotificationRegistration();
+      renderJournalReminder();
+      if (permission==="granted") showToast("Daily browser reminder enabled for 8 pm.");
+      else if (permission==="denied") showToast("Browser notifications were blocked. The on-page reminder will still appear.");
+    } catch(error) {
+      console.error(error);
+      els.notificationStatus.textContent="Could not enable browser notifications. Check your browser settings.";
+    }
+  }
   function sortedKeys() {
     return Object.keys(entries).filter(k=>validEntry(entries[k])).sort((a,b)=>els.sortEntries.value==="oldest"?a.localeCompare(b):b.localeCompare(a));
   }
@@ -280,7 +372,7 @@ import { firebaseConfig } from "./config.js";
     const labels=["M","T","W","T","F","S","S"];
     for(let i=0;i<7;i++){const day=new Date(monday);day.setDate(monday.getDate()+i);const key=todayKey(day),done=validEntry(entries[key]);const el=document.createElement("div");el.className="week-day"+(done?" done":"")+(key===todayKey()?" today":"");el.innerHTML=`<span>${labels[i]}</span><span>${done?"✓":day.getDate()}</span>`;els.weekRow.append(el);}
   }
-  function renderAll(){renderQuote();renderStats();renderWeek();renderJournal();renderMemories();}
+  function renderAll(){renderQuote();renderStats();renderWeek();renderJournal();renderMemories();renderJournalReminder();}
   async function saveCurrentQuote() {
     if(!requireUser())return;
     const q=currentQuote(), i=savedQuotes.findIndex(x=>x.text===q.text);
@@ -388,6 +480,7 @@ import { firebaseConfig } from "./config.js";
         entries = {};
         savedQuotes = [];
         setSignedInState(false);
+        renderJournalReminder();
         renderQuote();
         authMessage("Sign in or create an account to begin.");
       }
@@ -398,6 +491,11 @@ import { firebaseConfig } from "./config.js";
   els.entryText.addEventListener("input",updateWordCount);
   els.photoInput.addEventListener("change",handlePhotoUpload);
   els.saveEntryBtn.addEventListener("click",saveEntry);
+  els.writeTodayBtn.addEventListener("click",()=>{
+    navigate("today");
+    window.setTimeout(()=>els.entryText.focus(),100);
+  });
+  els.enableNotificationsBtn.addEventListener("click",enableBrowserReminders);
   els.newPromptBtn.addEventListener("click",()=>{promptIndex=(promptIndex+1)%prompts.length;els.promptText.textContent=prompts[promptIndex];});
   els.saveQuoteBtn.addEventListener("click",saveCurrentQuote);
   els.exportBtn.addEventListener("click",exportJournal);

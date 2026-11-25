@@ -62,6 +62,18 @@
       </section>
 
       <section class="view active" id="view-today">
+        <aside id="journalReminder" class="journal-reminder" role="status" aria-live="polite" hidden>
+          <div class="journal-reminder-copy">
+            <p class="eyebrow">A GENTLE DAILY REMINDER</p>
+            <h2>Today's journal is still waiting.</h2>
+            <p>You haven't added today's journal yet. Take a moment to save a memory from your day.</p>
+          </div>
+          <div class="journal-reminder-actions">
+            <button id="writeTodayBtn" class="primary-button" type="button">Write today's journal</button>
+            <button id="enableNotificationsBtn" class="secondary-button" type="button">Enable browser reminder</button>
+          </div>
+          <p id="notificationStatus" class="notification-status">Optional browser alert at 8 pm. The website must be open.</p>
+        </aside>
         <div class="main-grid">
           <div class="left-column">
             <article class="quote-card">
