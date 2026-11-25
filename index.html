@@ -36,6 +36,12 @@
           <p>Sign in to save your journal privately and continue on your other devices.</p>
         </div>
         <form id="authForm" class="auth-form">
+          <div id="signupFields" hidden>
+            <label for="authName">Full name</label>
+            <input id="authName" type="text" autocomplete="name" maxlength="80" placeholder="Your name">
+            <label for="authUsername">Username</label>
+            <input id="authUsername" type="text" autocomplete="username" minlength="3" maxlength="24" pattern="[A-Za-z0-9_]{3,24}" title="Use 3–24 letters, numbers or underscores." placeholder="Choose a username">
+          </div>
           <label for="authEmail">Email address</label>
           <input id="authEmail" type="email" autocomplete="email" required placeholder="you@example.com">
           <label for="authPassword">Password</label>

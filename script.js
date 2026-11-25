@@ -4,6 +4,7 @@ import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
+  updateProfile,
   signOut
 } from "https://www.gstatic.com/firebasejs/13.0.0/firebase-auth.js";
 import {
@@ -62,7 +63,8 @@ import { firebaseConfig } from "./config.js";
   const $ = id => document.getElementById(id);
   const els = {
     headerDate:$("headerDate"), userEmail:$("userEmail"), signInBtn:$("signInBtn"), signOutBtn:$("signOutBtn"),
-    authPanel:$("authPanel"), authForm:$("authForm"), authEmail:$("authEmail"), authPassword:$("authPassword"),
+    authPanel:$("authPanel"), authForm:$("authForm"), signupFields:$("signupFields"),
+    authName:$("authName"), authUsername:$("authUsername"), authEmail:$("authEmail"), authPassword:$("authPassword"),
     authMessage:$("authMessage"), signInSubmit:$("signInSubmit"), signUpSubmit:$("signUpSubmit"),
     quoteDay:$("quoteDay"), quoteText:$("quoteText"), quoteAuthor:$("quoteAuthor"), saveQuoteBtn:$("saveQuoteBtn"),
     entryDatePill:$("entryDatePill"), promptText:$("promptText"), newPromptBtn:$("newPromptBtn"), entryText:$("entryText"),
@@ -124,7 +126,7 @@ import { firebaseConfig } from "./config.js";
     els.authPanel.hidden=signedIn;
     els.signInBtn.hidden=signedIn;
     els.signOutBtn.hidden=!signedIn;
-    els.userEmail.textContent=signedIn ? user.email : "Not signed in";
+    els.userEmail.textContent=signedIn ? (user.displayName || user.email) : "Not signed in";
     document.querySelectorAll(".nav-link").forEach(b=>b.disabled=!signedIn);
   }
   function requireUser() {
@@ -330,8 +332,43 @@ import { firebaseConfig } from "./config.js";
   }
   async function signUp() {
     if(!firebaseConfig.apiKey || String(firebaseConfig.apiKey).startsWith("PASTE_")) {authMessage("First add your real Firebase values to config.js, then reload.",true);return;}
-    try {await createUserWithEmailAndPassword(auth, els.authEmail.value.trim(), els.authPassword.value);}
+    if(!els.authForm.reportValidity()) return;
+    const name=els.authName.value.trim();
+    const username=els.authUsername.value.trim();
+    try {
+      const credential=await createUserWithEmailAndPassword(auth, els.authEmail.value.trim(), els.authPassword.value);
+      try {
+        await updateProfile(credential.user,{displayName:name});
+        await set(ref(db,`users/${credential.user.uid}/profile`),{
+          name,
+          username,
+          email:credential.user.email,
+          createdAt:Date.now()
+        });
+        authMessage("Account created. Welcome to Dear Tomorrow!");
+      } catch(profileError) {
+        console.error(profileError);
+        authMessage("Your account was created, but your profile could not be saved. Check the Realtime Database rules.",true);
+      }
+    }
     catch(e){authMessage(friendlyAuthError(e),true);}
+  }
+  function setAuthMode(mode) {
+    const creating=mode==="signup";
+    els.signupFields.hidden=!creating;
+    els.authName.required=creating;
+    els.authUsername.required=creating;
+    els.authPassword.autocomplete=creating?"new-password":"current-password";
+    els.signInSubmit.type=creating?"button":"submit";
+    els.signInSubmit.textContent=creating?"Back to sign in":"Sign in";
+    els.signUpSubmit.textContent=creating?"Create account":"Create account";
+    if(creating) {
+      authMessage("Create your profile with your name, username, email and password.");
+      els.authName.focus();
+    } else {
+      authMessage("Sign in or create an account to begin.");
+      els.authEmail.focus();
+    }
   }
   function initFirebase() {
     if (!firebaseConfig.apiKey || String(firebaseConfig.apiKey).startsWith("PASTE_")) {
@@ -377,9 +414,15 @@ import { firebaseConfig } from "./config.js";
     catch(e){console.error(e);showToast("Could not delete entry. Check your connection.");}
   });
   els.clearDataBtn.addEventListener("click",clearData);
-  els.signInBtn.addEventListener("click",()=>{els.authPanel.hidden=false;els.authEmail.focus();});
+  els.signInBtn.addEventListener("click",()=>{els.authPanel.hidden=false;setAuthMode("signin");});
   els.signOutBtn.addEventListener("click",async()=>{try{await signOut(auth);showToast("Signed out.");}catch(e){showToast("Could not sign out.");}});
   els.authForm.addEventListener("submit",signIn);
-  els.signUpSubmit.addEventListener("click",signUp);
+  els.signUpSubmit.addEventListener("click",()=>{
+    if(els.signupFields.hidden) setAuthMode("signup");
+    else signUp();
+  });
+  els.signInSubmit.addEventListener("click",()=>{
+    if(!els.signupFields.hidden) setAuthMode("signin");
+  });
   renderHeader();renderQuote();updateWordCount();initFirebase();
 })();
